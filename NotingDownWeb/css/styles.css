@@ -1,0 +1,27 @@
+body {
+  background-color: #f8f9fa;
+}
+
+.note-item {
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.note-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.grid-view .note-item {
+  height: 250px;
+  overflow-y: auto;
+}
+
+.card-text {
+    max-height: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 6;
+    -webkit-box-orient: vertical;
+}

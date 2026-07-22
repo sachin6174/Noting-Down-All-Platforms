@@ -1,0 +1,151 @@
+# Xcode
+*/.gradle
+build/
+DerivedData/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xccheckout
+*.xcuserstate
+*.xcscmblueprint
+
+# Xcode Workspace
+*.xcworkspace
+xcshareddata/
+
+# Xcode Results
+*.xcresult
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# CocoaPods
+Pods/
+
+# Carthage
+Carthage/Build/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+
+# Crash reports
+*.crash
+*.xcactivitylog
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# User settings
+*.swp
+*.lock
+
+# Preview Content
+NotingDown/Preview Content/
+
+# Release Images
+NotingDown/ReleseImages/
+
+# VS Code
+.vscode/
+
+# JetBrains IDEs
+.idea/
+
+# Xcode Archives
+*.xcarchive
+
+# Merge conflict files
+*.orig
+
+# Environment files
+.env
+
+# Xcode temp files
+*.moved-aside
+
+# Code coverage
+.coverage/
+
+# SwiftLint config (optional, remove if you want to share)
+.swiftlint.yml
+
+# Android (NotingDownAndroid)
+# Gradle and local environment
+NotingDownAndroid/.gradle/
+NotingDownAndroid/local.properties
+
+# IDE files (Android Studio/IntelliJ)
+NotingDownAndroid/.idea/
+NotingDownAndroid/.idea/caches
+NotingDownAndroid/.idea/libraries
+NotingDownAndroid/.idea/modules.xml
+NotingDownAndroid/.idea/workspace.xml
+NotingDownAndroid/.idea/navEditor.xml
+NotingDownAndroid/.gradle/
+NotingDownAndroid/.idea/assetWizardSettings.xml
+NotingDownAndroid/**/*.iml
+
+# Build outputs
+NotingDownAndroid/build/
+NotingDownAndroid/**/build/
+NotingDownAndroid/**/captures/
+NotingDownAndroid/.externalNativeBuild/
+NotingDownAndroid/.cxx/
+
+# Packages / archives
+NotingDownAndroid/**/*.apk
+NotingDownAndroid/**/*.ap_
+NotingDownAndroid/**/*.aab
+NotingDownAndroid/**/*.aar
+
+# Keystores (do not commit signing keys)
+NotingDownAndroid/**/*.jks
+NotingDownAndroid/**/*.keystore
+
+# Fastlane artifacts (Android)
+NotingDownAndroid/fastlane/report.xml
+NotingDownAndroid/fastlane/Preview.html
+NotingDownAndroid/fastlane/screenshots/
+NotingDownAndroid/fastlane/test_output/
+
+# Optional: Jetpack Compose metrics/reports
+NotingDownAndroid/**/compose-metrics/
+NotingDownAndroid/**/compose-reports/
+
+# Node / Web / Server Dependencies
+# -------------------------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# MongoDB binaries and archives
+# -------------------------------------------------------------------------
+mongodb-macos-*/
+mongodb-macos-*.tgz
+*.tgz

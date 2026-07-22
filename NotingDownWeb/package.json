@@ -1,0 +1,16 @@
+{
+  "name": "noting-down-web",
+  "version": "1.0.0",
+  "description": "Web client for notes application",
+  "main": "index.js",
+  "scripts": {
+    "start": "http-server . -p 3000 -c-1",
+    "dev": "http-server . -p 3000 -c-1"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "keywords": ["notes", "web", "client"],
+  "author": "",
+  "license": "ISC"
+}
