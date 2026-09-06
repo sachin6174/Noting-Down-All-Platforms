@@ -16,19 +16,13 @@ extension NotesTable {
     @NSManaged public var colorTag: String?
     
     var formattedCreatedDate: String {
-        guard let createdDate = createdDate else { return "Unknown" }
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: createdDate)
+        guard let createdDate = createdDate else { return String(localized: "Unknown") }
+        return createdDate.formatted(date: .abbreviated, time: .shortened)
     }
     
     var formattedModifiedDate: String {
-        guard let modifiedDate = modifiedDate else { return "Unknown" }
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        return formatter.string(from: modifiedDate)
+        guard let modifiedDate = modifiedDate else { return String(localized: "Unknown") }
+        return modifiedDate.formatted(date: .abbreviated, time: .shortened)
     }
     
     var displayCategory: String {

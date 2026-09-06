@@ -7,6 +7,9 @@ struct DashboardView: View {
     @State private var favoriteNotes: [NotesTable] = []
     @State private var quickStats: DashboardStats?
     @State private var showingAllRecent = false
+    @State private var showingEditor = false
+    @State private var showingVoiceNote = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     
     var body: some View {
         ScrollView {
@@ -15,8 +18,8 @@ struct DashboardView: View {
                 VStack(alignment: .leading, spacing: Theme.paddingS) {
                     HStack {
                         VStack(alignment: .leading) {
-                            Text(greetingMessage())
-                                .font(.system(size: 24, weight: .bold))
+                            Text(LocalizedStringKey(greetingMessage()))
+                                .font(.title2.bold())
                                 .foregroundColor(Theme.textPrimary)
                             
                             Text("Ready to capture your thoughts?")
@@ -26,29 +29,17 @@ struct DashboardView: View {
                         
                         Spacer()
                         
-                        Button(action: {}) {
-                            AsyncImage(url: URL(string: "https://via.placeholder.com/50")) { image in
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                            } placeholder: {
-                                Circle()
-                                    .fill(Theme.primaryGreen.opacity(0.3))
-                                    .overlay(
-                                        Image(systemName: "person.fill")
-                                            .foregroundColor(Theme.primaryGreen)
-                                    )
-                            }
-                            .frame(width: 50, height: 50)
-                            .clipShape(Circle())
-                        }
+                        Image(systemName: "note.text")
+                            .font(.largeTitle)
+                            .foregroundColor(Theme.primaryGreen)
+                            .accessibilityHidden(true)
                     }
                 }
                 .padding(.horizontal, Theme.paddingM)
                 
                 // Quick Stats
                 if let stats = quickStats {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: Theme.paddingM) {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: dynamicTypeSize.isAccessibilitySize ? 1 : 3), spacing: Theme.paddingM) {
                         QuickStatCard(
                             title: "Notes",
                             value: "\(stats.totalNotes)",
@@ -159,7 +150,7 @@ struct DashboardView: View {
                             icon: "plus.circle",
                             color: Theme.primaryGreen
                         ) {
-                            // Handle new note
+                            showingEditor = true
                         }
                         
                         QuickActionButton(
@@ -167,24 +158,9 @@ struct DashboardView: View {
                             icon: "mic.circle",
                             color: .red
                         ) {
-                            // Handle voice note
+                            showingVoiceNote = true
                         }
                         
-                        QuickActionButton(
-                            title: "Quick Idea",
-                            icon: "lightbulb.circle",
-                            color: .yellow
-                        ) {
-                            // Handle quick idea
-                        }
-                        
-                        QuickActionButton(
-                            title: "Daily Journal",
-                            icon: "book.circle",
-                            color: .purple
-                        ) {
-                            // Handle daily journal
-                        }
                     }
                     .padding(.horizontal, Theme.paddingM)
                 }
@@ -197,6 +173,12 @@ struct DashboardView: View {
         }
         .onAppear {
             loadDashboardData()
+        }
+        .sheet(isPresented: $showingEditor, onDismiss: loadDashboardData) {
+            EnhancedNoteEditorView()
+        }
+        .sheet(isPresented: $showingVoiceNote, onDismiss: loadDashboardData) {
+            VoiceNoteView()
         }
         .sheet(isPresented: $showingAllRecent) {
             AllRecentNotesView(notes: recentNotes)
@@ -298,11 +280,11 @@ struct QuickStatCard: View {
                 .foregroundColor(Theme.textPrimary)
             
             VStack(spacing: 2) {
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(Theme.captionFont)
                     .foregroundColor(Theme.textPrimary)
                 
-                Text(subtitle)
+                Text(LocalizedStringKey(subtitle))
                     .font(.system(size: 10))
                     .foregroundColor(Theme.textTertiary)
             }
@@ -333,7 +315,7 @@ struct CompactNoteCard: View {
                 
                 Spacer()
                 
-                Text(note.displayCategory)
+                Text(LocalizedStringKey(note.displayCategory))
                     .font(.system(size: 10))
                     .foregroundColor(Theme.categoryColors[note.displayCategory])
                     .padding(.horizontal, 6)
@@ -383,7 +365,7 @@ struct QuickActionButton: View {
                     .font(.system(size: 20))
                     .foregroundColor(color)
                 
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(Theme.bodyFont)
                     .foregroundColor(Theme.textPrimary)
                 
@@ -423,7 +405,7 @@ struct AllRecentNotesView: View {
                         }
                         
                         HStack {
-                            Text(note.displayCategory)
+                            Text(LocalizedStringKey(note.displayCategory))
                                 .font(.system(size: 10))
                                 .foregroundColor(Theme.categoryColors[note.displayCategory])
                             

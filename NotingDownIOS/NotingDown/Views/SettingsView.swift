@@ -3,9 +3,9 @@ import SwiftUI
 struct SettingsView: View {
     @AppStorage("isDarkMode") private var isDarkMode = false
     @AppStorage("defaultCategory") private var defaultCategory = "General"
-    @AppStorage("autoSave") private var autoSave = true
     @AppStorage("showWordCount") private var showWordCount = true
     
+    @State private var showingShareSheet = false
     @Environment(\.presentationMode) var presentationMode
     
     private let categories = ["General", "Work", "Personal", "Ideas", "Shopping", "Travel", "Health", "Finance", "Education"]
@@ -30,17 +30,11 @@ struct SettingsView: View {
                         
                         Picker("Default Category", selection: $defaultCategory) {
                             ForEach(categories, id: \.self) { category in
-                                Text(category).tag(category)
+                                Text(LocalizedStringKey(category)).tag(category)
                             }
                         }
                     }
                     
-                    HStack {
-                        Image(systemName: "square.and.pencil")
-                            .foregroundColor(Theme.primaryGreen)
-                            .font(.system(size: 20))
-                        Toggle("Auto Save", isOn: $autoSave)
-                    }
                     
                     HStack {
                         Image(systemName: "textformat.123")
@@ -50,6 +44,10 @@ struct SettingsView: View {
                     }
                 }
                 
+                Section("Storage") {
+                    Text("Notes are stored on this device. iCloud sync is not available.")
+                    Text("Voice transcription uses Apple Speech and may require a network connection. Only the transcript is saved with your note.")
+                }
                 Section("About") {
                     HStack {
                         Image(systemName: "info.circle")
@@ -58,7 +56,7 @@ struct SettingsView: View {
                         VStack(alignment: .leading) {
                             Text("NotingDown")
                                 .font(.headline)
-                            Text("Version 1.0")
+                            Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -105,6 +103,9 @@ struct SettingsView: View {
                 }
             }
         }
+        .sheet(isPresented: $showingShareSheet) {
+            ShareSheet(activityItems: ["NotingDown", URL(string: "https://apps.apple.com/us/app/notingdown/id6742340327")!])
+        }
         .preferredColorScheme(isDarkMode ? .dark : .light)
     }
     
@@ -115,16 +116,7 @@ struct SettingsView: View {
     }
     
     private func shareApp() {
-        let appURL = URL(string: "https://apps.apple.com/us/app/notingdown/id6742340327")!
-        let activityVC = UIActivityViewController(
-            activityItems: ["Check out NotingDown - A beautiful note-taking app!", appURL],
-            applicationActivities: nil
-        )
-        
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootViewController = windowScene.windows.first?.rootViewController {
-            rootViewController.present(activityVC, animated: true)
-        }
+        showingShareSheet = true
     }
 }
 

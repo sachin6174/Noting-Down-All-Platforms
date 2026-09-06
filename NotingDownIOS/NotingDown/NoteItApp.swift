@@ -9,7 +9,7 @@ import SwiftUI
 
 @main
 struct NoteItApp: App {
-    let persistenceController = CoreDataStack.shared
+    let persistenceController = AppPersistence.makeStack()
     @AppStorage("isDarkMode") private var isDarkMode = false
 
     var body: some Scene {
@@ -17,10 +17,7 @@ struct NoteItApp: App {
             MainTabView()
                 .environment(\.managedObjectContext, persistenceController.context)
                 .preferredColorScheme(isDarkMode ? .dark : .light)
-                .onAppear {
-                    // Perform migration if needed
-                    CoreDataMigrationHelper.performMigrationIfNeeded()
-                }
+
         }
     }
 }

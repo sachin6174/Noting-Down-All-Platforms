@@ -5,9 +5,7 @@ struct ContentView: View {
     @Environment(\.managedObjectContext) var viewContext
     @StateObject private var searchViewModel = SearchViewModel()
     
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \NotesTable.modifiedDate, ascending: false)],
-        animation: .default)
+    @FetchRequest(fetchRequest: SearchViewModel().fetchRequest(search: ""))
     private var allNotes: FetchedResults<NotesTable>
     
     @State private var showEditor = false
@@ -18,16 +16,10 @@ struct ContentView: View {
     @State private var showingAnalytics = false
     @State private var showingVoiceNote = false
     @State private var showingSettings = false
+    @State private var shareItems: [Any] = []
+    @State private var showingShareSheet = false
+    @State private var saveError = false
     
-    private var filteredNotes: [NotesTable] {
-        allNotes.filter { note in
-            searchViewModel.shouldShowNote(note)
-        }.sorted { note1, note2 in
-            let descriptor = searchViewModel.sortOption.descriptor
-            let comparison = descriptor.compare(note1, to: note2)
-            return descriptor.ascending ? comparison == .orderedAscending : comparison == .orderedDescending
-        }
-    }
     
     var body: some View {
         NavigationView {
@@ -45,9 +37,9 @@ struct ContentView: View {
                 .background(Theme.lightGreen)
                 
                 // Notes list or empty state
-                if filteredNotes.isEmpty {
+                if allNotes.isEmpty {
                     EmptyStateView(
-                        hasNotes: !allNotes.isEmpty,
+                        hasNotes: ((try? viewContext.count(for: NotesTable.fetchRequest())) ?? 0) > 0,
                         searchText: searchViewModel.searchText
                     ) {
                         // Clear filters action
@@ -65,7 +57,7 @@ struct ContentView: View {
                         
                         ScrollView {
                             LazyVStack(spacing: Theme.paddingS) {
-                                ForEach(filteredNotes, id: \.objectID) { note in
+                                ForEach(allNotes, id: \.objectID) { note in
                                     NavigationLink(destination: NoteDetailView(note: note)) {
                                         NoteCard(
                                             note: note,
@@ -110,6 +102,8 @@ struct ContentView: View {
                                 .font(.system(size: 20))
                                 .foregroundColor(.red)
                         }
+                        .frame(minWidth: 44, minHeight: 44)
+                        .accessibilityLabel("Voice Note")
                         
                         Button(action: {
                             editingNote = nil
@@ -119,6 +113,9 @@ struct ContentView: View {
                                 .font(.system(size: 24))
                                 .foregroundColor(Theme.primaryGreen)
                         }
+                        .frame(minWidth: 44, minHeight: 44)
+                        .accessibilityLabel("New Note")
+                        .accessibilityIdentifier("notes.add")
                     }
                 }
                 
@@ -146,10 +143,12 @@ struct ContentView: View {
                             .font(.system(size: 20))
                             .foregroundColor(Theme.primaryGreen)
                     }
+                    .accessibilityLabel("More actions")
                 }
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
+        .sheet(isPresented: $showingShareSheet) { ShareSheet(activityItems: shareItems) }
         .sheet(isPresented: $showEditor) {
             EnhancedNoteEditorView(note: editingNote)
                 .environment(\.managedObjectContext, viewContext)
@@ -181,13 +180,20 @@ struct ContentView: View {
         .onAppear {
             updateFetchRequest()
         }
+        .alert("Could not save note", isPresented: $saveError) {
+            Button("OK", role: .cancel) { }
+        } message: { Text("Please try again.") }
         .onChange(of: searchViewModel.sortOption) { _ in
             updateFetchRequest()
         }
+        .onChange(of: searchViewModel.debouncedSearchText) { _ in updateFetchRequest() }
+        .onChange(of: searchViewModel.selectedCategory) { _ in updateFetchRequest() }
+        .onChange(of: searchViewModel.showFavoritesOnly) { _ in updateFetchRequest() }
     }
     
     private func updateFetchRequest() {
-        // This will be handled by our custom filtering logic
+        allNotes.nsPredicate = searchViewModel.predicate(search: searchViewModel.debouncedSearchText)
+        allNotes.nsSortDescriptors = [searchViewModel.sortOption.descriptor, NSSortDescriptor(key: "id", ascending: true)]
     }
     
     private func toggleFavorite(note: NotesTable) {
@@ -214,12 +220,14 @@ struct ContentView: View {
         do {
             try viewContext.save()
         } catch {
-            print("Error saving context: \(error.localizedDescription)")
+            viewContext.rollback()
+            saveError = true
         }
     }
     
     private func exportNotes() {
-        let exportText = allNotes.map { note in
+        let notes = (try? viewContext.fetch(SearchViewModel().fetchRequest(search: ""))) ?? []
+        let exportText = notes.map { note in
             """
             Title: \(note.title ?? "Untitled")
             Category: \(note.displayCategory)
@@ -233,28 +241,14 @@ struct ContentView: View {
             """
         }.joined()
         
-        let activityVC = UIActivityViewController(
-            activityItems: [exportText],
-            applicationActivities: nil
-        )
-        
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootViewController = windowScene.windows.first?.rootViewController {
-            rootViewController.present(activityVC, animated: true)
-        }
+        shareItems = [exportText]
+        showingShareSheet = true
     }
     
     private func shareApp() {
         let appURL = URL(string: "https://apps.apple.com/us/app/notingdown/id6742340327")!
-        let activityVC = UIActivityViewController(
-            activityItems: ["Check out NotingDown - A beautiful note-taking app!", appURL],
-            applicationActivities: nil
-        )
-        
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootViewController = windowScene.windows.first?.rootViewController {
-            rootViewController.present(activityVC, animated: true)
-        }
+        shareItems = ["NotingDown", appURL]
+        showingShareSheet = true
     }
 }
 
@@ -270,13 +264,13 @@ struct EmptyStateView: View {
                 .foregroundColor(Theme.textTertiary)
             
             VStack(spacing: Theme.paddingS) {
-                Text(hasNotes ? "No notes found" : "No notes yet")
+                Text(LocalizedStringKey(hasNotes ? "No notes found" : "No notes yet"))
                     .font(Theme.headlineFont)
                     .foregroundColor(Theme.textPrimary)
                 
-                Text(hasNotes ? 
+                Text(LocalizedStringKey(hasNotes ?
                      "Try adjusting your search or filters" :
-                     "Create your first note to get started")
+                     "Create your first note to get started"))
                     .font(Theme.bodyFont)
                     .foregroundColor(Theme.textSecondary)
                     .multilineTextAlignment(.center)

@@ -12,6 +12,8 @@ struct SearchBar: View {
                     .font(.system(size: 16))
                 
                 TextField("Search notes...", text: $searchText)
+                    .accessibilityLabel("Search notes")
+                    .accessibilityIdentifier("notes.search")
                     .font(Theme.bodyFont)
                     .onTapGesture {
                         isEditing = true
@@ -25,6 +27,8 @@ struct SearchBar: View {
                             .foregroundColor(Theme.textTertiary)
                             .font(.system(size: 16))
                     }
+                    .frame(minWidth: 44, minHeight: 44)
+                    .accessibilityLabel("Clear search")
                 }
             }
             .padding(.horizontal, Theme.paddingM)

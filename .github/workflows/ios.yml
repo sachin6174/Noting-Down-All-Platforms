@@ -1,0 +1,38 @@
+name: iOS
+
+on:
+  pull_request:
+    paths: ["NotingDownIOS/**", ".github/workflows/ios.yml"]
+  push:
+    paths: ["NotingDownIOS/**", ".github/workflows/ios.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate sources and project metadata
+        run: python3 NotingDownIOS/scripts/validate.py
+      - name: Build and test on iPhone simulator
+        run: python3 NotingDownIOS/scripts/ci.py test
+      - name: Capture simulator screenshots and demo
+        run: python3 NotingDownIOS/scripts/ci.py demo
+      - name: Upload tests, coverage, benchmarks and media
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-evidence
+          path: |
+            NotingDownIOS/artifacts/
+            !NotingDownIOS/artifacts/DerivedData/
+          if-no-files-found: warn
+          retention-days: 14

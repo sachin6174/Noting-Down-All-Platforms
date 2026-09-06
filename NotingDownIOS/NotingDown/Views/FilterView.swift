@@ -33,7 +33,7 @@ struct FilterView: View {
                 Button(action: { showingSortOptions = true }) {
                     HStack(spacing: 4) {
                         Image(systemName: "arrow.up.arrow.down")
-                        Text(searchViewModel.sortOption.rawValue)
+                        Text(LocalizedStringKey(searchViewModel.sortOption.rawValue))
                     }
                     .font(Theme.captionFont)
                     .foregroundColor(.white)
@@ -49,7 +49,7 @@ struct FilterView: View {
             ActionSheet(
                 title: Text("Sort By"),
                 buttons: SearchViewModel.SortOption.allCases.map { option in
-                    .default(Text(option.rawValue)) {
+                    .default(Text(LocalizedStringKey(option.rawValue))) {
                         searchViewModel.sortOption = option
                     }
                 } + [.cancel()]
@@ -84,7 +84,7 @@ struct FilterChip: View {
         Button(action: action) {
             HStack(spacing: 4) {
                 Image(systemName: icon)
-                Text(title)
+                Text(LocalizedStringKey(title))
             }
             .font(Theme.captionFont)
             .foregroundColor(isSelected ? .white : color)
@@ -92,7 +92,9 @@ struct FilterChip: View {
             .padding(.vertical, 6)
             .background(isSelected ? color : color.opacity(0.2))
             .cornerRadius(16)
+            .frame(minHeight: 44)
         }
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

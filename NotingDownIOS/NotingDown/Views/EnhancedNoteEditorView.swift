@@ -8,11 +8,15 @@ struct RichTextEditor: UIViewRepresentable {
     func makeUIView(context: Context) -> UITextView {
         let textView = UITextView()
         textView.delegate = context.coordinator
+        context.coordinator.textView = textView
         textView.backgroundColor = UIColor.clear
         textView.isScrollEnabled = true
         textView.isEditable = true
         textView.isUserInteractionEnabled = true
-        textView.font = UIFont.systemFont(ofSize: 16)
+        textView.font = UIFont.preferredFont(forTextStyle: .body)
+        textView.adjustsFontForContentSizeCategory = true
+        textView.accessibilityLabel = String(localized: "Note content")
+        textView.accessibilityIdentifier = "editor.body"
         textView.dataDetectorTypes = [.link, .phoneNumber, .address]
         textView.allowsEditingTextAttributes = true
         
@@ -23,6 +27,7 @@ struct RichTextEditor: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: UITextView, context: Context) {
+        context.coordinator.parent = self
         if uiView.attributedText != text {
             uiView.attributedText = text
         }
@@ -64,7 +69,7 @@ struct RichTextEditor: UIViewRepresentable {
         )
         
         let bulletButton = UIBarButtonItem(
-            title: "• List",
+            title: String(localized: "• List"),
             style: .plain,
             target: coordinator,
             action: #selector(Coordinator.insertBulletPoint)
@@ -73,12 +78,16 @@ struct RichTextEditor: UIViewRepresentable {
         let flexSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
         let doneButton = UIBarButtonItem(barButtonSystemItem: .done, target: textView, action: #selector(UIResponder.resignFirstResponder))
         
+        boldButton.accessibilityLabel = String(localized: "Bold")
+        italicButton.accessibilityLabel = String(localized: "Italic")
+        underlineButton.accessibilityLabel = String(localized: "Underline")
         toolbar.items = [boldButton, italicButton, underlineButton, bulletButton, flexSpace, doneButton]
         return toolbar
     }
     
     class Coordinator: NSObject, UITextViewDelegate {
-        let parent: RichTextEditor
+        var parent: RichTextEditor
+        weak var textView: UITextView?
         
         init(_ parent: RichTextEditor) {
             self.parent = parent
@@ -97,45 +106,9 @@ struct RichTextEditor: UIViewRepresentable {
         }
         
         @objc func insertBulletPoint() {
-            // This method will be called from the toolbar button
-            // We'll use a simple approach by finding the currently active text view
-            DispatchQueue.main.async {
-                if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                   let window = scene.windows.first,
-                   let textView = self.findTextView(in: window.rootViewController?.view) {
-                    
-                    let currentText = textView.attributedText.mutableCopy() as! NSMutableAttributedString
-                    let bullet = NSAttributedString(string: "\n• ", attributes: [
-                        .font: UIFont.systemFont(ofSize: 16),
-                        .foregroundColor: UIColor.label
-                    ])
-                    
-                    let selectedRange = textView.selectedRange
-                    currentText.insert(bullet, at: selectedRange.location)
-                    
-                    textView.attributedText = currentText
-                    textView.selectedRange = NSRange(location: selectedRange.location + bullet.length, length: 0)
-                    
-                    // Update the parent's text binding
-                    self.parent.text = textView.attributedText
-                }
-            }
-        }
-        
-        private func findTextView(in view: UIView?) -> UITextView? {
-            guard let view = view else { return nil }
-            
-            if let textView = view as? UITextView {
-                return textView
-            }
-            
-            for subview in view.subviews {
-                if let textView = findTextView(in: subview) {
-                    return textView
-                }
-            }
-            
-            return nil
+            guard let textView else { return }
+            textView.insertText("\n• ")
+            parent.text = textView.attributedText
         }
     }
 }
@@ -145,14 +118,15 @@ struct EnhancedNoteEditorView: View {
     @Environment(\.managedObjectContext) private var viewContext
     
     @State private var title: String = ""
+    @State private var saveError = false
+    @AppStorage("defaultCategory") private var defaultCategory = "General"
+    @AppStorage("showWordCount") private var showWordCount = true
     @State private var richText: NSAttributedString = NSAttributedString()
     @State private var selectedCategory: String = "General"
     @State private var isFavorite: Bool = false
     @State private var colorTag: String = ""
     @State private var isRichTextFocused: Bool = false
     @State private var showingVoiceNote = false
-    @State private var showingImagePicker = false
-    @State private var selectedImages: [UIImage] = []
     
     @FocusState private var titleFocused: Bool
     
@@ -174,7 +148,9 @@ struct EnhancedNoteEditorView: View {
                                     .foregroundColor(Theme.textSecondary)
                                 
                                 TextField("Enter note title...", text: $title)
-                                    .font(.system(size: 18, weight: .semibold))
+                                    .accessibilityLabel("Title")
+                                    .accessibilityIdentifier("editor.title")
+                                    .font(.headline)
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                                     .focused($titleFocused)
                             }
@@ -185,15 +161,15 @@ struct EnhancedNoteEditorView: View {
                                         .foregroundColor(isFavorite ? .red : Theme.textSecondary)
                                         .font(.system(size: 24))
                                 }
+                                .frame(minWidth: 44, minHeight: 44)
+                                .accessibilityLabel(isFavorite ? "Remove from Favorites" : "Add to Favorites")
                                 
                                 Menu {
                                     Button(action: { showingVoiceNote = true }) {
                                         Label("Voice Note", systemImage: "mic")
                                     }
                                     
-                                    Button(action: { showingImagePicker = true }) {
-                                        Label("Add Image", systemImage: "photo")
-                                    }
+
                                     
                                     Button(action: { insertCurrentDateTime() }) {
                                         Label("Insert Date/Time", systemImage: "calendar")
@@ -207,6 +183,8 @@ struct EnhancedNoteEditorView: View {
                                         .foregroundColor(Theme.primaryGreen)
                                         .font(.system(size: 24))
                                 }
+                                .frame(minWidth: 44, minHeight: 44)
+                                .accessibilityLabel("More actions")
                             }
                         }
                         
@@ -238,11 +216,11 @@ struct EnhancedNoteEditorView: View {
                                 .font(Theme.captionFont)
                                 .foregroundColor(Theme.textSecondary)
                             
-                            HStack(spacing: Theme.paddingS) {
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 44))], spacing: Theme.paddingS) {
                                 ForEach(colorTags, id: \.self) { color in
                                     Button(action: { colorTag = color }) {
                                         Circle()
-                                            .fill(color.isEmpty ? Color.clear : Color(color))
+                                            .fill(Theme.noteTagColors[color] ?? Color.clear)
                                             .frame(width: 30, height: 30)
                                             .overlay(
                                                 Circle()
@@ -255,6 +233,9 @@ struct EnhancedNoteEditorView: View {
                                                     .opacity(colorTag == color ? 1 : 0)
                                             )
                                     }
+                                    .frame(minWidth: 44, minHeight: 44)
+                                    .accessibilityLabel(Text(LocalizedStringKey(color.isEmpty ? "No color" : color)))
+                                    .accessibilityAddTraits(colorTag == color ? .isSelected : [])
                                 }
                                 Spacer()
                             }
@@ -281,52 +262,20 @@ struct EnhancedNoteEditorView: View {
                             .padding(.horizontal, Theme.paddingM)
                     }
                     
-                    // Image Attachments
-                    if !selectedImages.isEmpty {
-                        VStack(alignment: .leading, spacing: Theme.paddingS) {
-                            Text("Attachments")
-                                .font(Theme.captionFont)
-                                .foregroundColor(Theme.textSecondary)
-                                .padding(.horizontal, Theme.paddingM)
-                            
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: Theme.paddingS) {
-                                    ForEach(selectedImages.indices, id: \.self) { index in
-                                        ZStack(alignment: .topTrailing) {
-                                            Image(uiImage: selectedImages[index])
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fit)
-                                                .frame(width: 100, height: 100)
-                                                .cornerRadius(Theme.cornerRadiusS)
-                                            
-                                            Button(action: {
-                                                selectedImages.remove(at: index)
-                                            }) {
-                                                Image(systemName: "xmark.circle.fill")
-                                                    .foregroundColor(.red)
-                                                    .background(Color.white, in: Circle())
-                                            }
-                                            .offset(x: 5, y: -5)
-                                        }
-                                    }
-                                }
-                                .padding(.horizontal, Theme.paddingM)
-                            }
-                        }
-                    }
-                    
                     // Word Count and Stats
-                    HStack {
+                    if showWordCount { VStack(alignment: .trailing) {
                         Spacer()
-                        Text("\(richText.string.split(separator: " ").count) words • \(richText.string.count) characters")
+                        Text("Words: \(richText.string.split(whereSeparator: \.isWhitespace).count)")
+                        Text("Characters: \(richText.string.count)")
                             .font(Theme.captionFont)
                             .foregroundColor(Theme.textSecondary)
                     }
                     .padding(.horizontal, Theme.paddingM)
+                    }
                 }
             }
             .background(Theme.lightGreen)
-            .navigationTitle(note == nil ? "New Note" : "Edit Note")
+            .navigationTitle(LocalizedStringKey(note == nil ? "New Note" : "Edit Note"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -340,6 +289,7 @@ struct EnhancedNoteEditorView: View {
                     Button("Save") {
                         saveNote()
                     }
+                    .accessibilityIdentifier("editor.save")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(Theme.primaryGreen)
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -354,22 +304,23 @@ struct EnhancedNoteEditorView: View {
                 }
             }
         }
+        .alert("Could not save note", isPresented: $saveError) {
+            Button("OK", role: .cancel) { }
+        } message: { Text("Your draft is still open. Please try again.") }
         .sheet(isPresented: $showingVoiceNote) {
             VoiceNoteView()
-        }
-        .sheet(isPresented: $showingImagePicker) {
-            ImagePicker(images: $selectedImages)
         }
     }
     
     private func loadNoteData() {
+        if note == nil { selectedCategory = defaultCategory }
         if let note = note {
             title = note.title ?? ""
             
             // Convert plain text to attributed string
             if let description = note.noteDescription {
                 richText = NSAttributedString(string: description, attributes: [
-                    .font: UIFont.systemFont(ofSize: 16),
+                    .font: UIFont.preferredFont(forTextStyle: .body),
                     .foregroundColor: UIColor.label
                 ])
             }
@@ -381,35 +332,15 @@ struct EnhancedNoteEditorView: View {
     }
     
     private func saveNote() {
-        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let content = richText.string
-        
-        if let note = note {
-            // Update existing note
-            note.title = trimmedTitle
-            note.noteDescription = content
-            note.category = selectedCategory
-            note.isFavorite = isFavorite
-            note.colorTag = colorTag.isEmpty ? nil : colorTag
-            note.modifiedDate = Date()
-        } else {
-            // Create new note
-            let newNote = NotesTable(context: viewContext)
-            newNote.id = UUID()
-            newNote.title = trimmedTitle
-            newNote.noteDescription = content
-            newNote.category = selectedCategory
-            newNote.isFavorite = isFavorite
-            newNote.colorTag = colorTag.isEmpty ? nil : colorTag
-            newNote.createdDate = Date()
-            newNote.modifiedDate = Date()
-        }
-        
         do {
-            try viewContext.save()
+            try NoteStore(context: viewContext).save(
+                note: note, title: title, body: richText.string,
+                category: selectedCategory, favorite: isFavorite,
+                colorTag: colorTag.isEmpty ? nil : colorTag)
+            HapticManager.shared.notification(.success)
             presentationMode.wrappedValue.dismiss()
         } catch {
-            print("Error saving note: \(error.localizedDescription)")
+            saveError = true
         }
     }
     
@@ -417,7 +348,7 @@ struct EnhancedNoteEditorView: View {
         let dateString = Date().formatted(date: .abbreviated, time: .shortened)
         let currentText = NSMutableAttributedString(attributedString: richText)
         let dateText = NSAttributedString(string: "\n📅 \(dateString)\n", attributes: [
-            .font: UIFont.systemFont(ofSize: 16),
+            .font: UIFont.preferredFont(forTextStyle: .body),
             .foregroundColor: UIColor.systemBlue
         ])
         currentText.append(dateText)
@@ -434,7 +365,7 @@ struct EnhancedNoteEditorView: View {
         
         let currentText = NSMutableAttributedString(attributedString: richText)
         let template = NSAttributedString(string: templateText, attributes: [
-            .font: UIFont.systemFont(ofSize: 16),
+            .font: UIFont.preferredFont(forTextStyle: .body),
             .foregroundColor: UIColor.label
         ])
         currentText.append(template)
@@ -443,38 +374,5 @@ struct EnhancedNoteEditorView: View {
     
     enum TemplateType {
         case todo
-    }
-}
-
-struct ImagePicker: UIViewControllerRepresentable {
-    @Binding var images: [UIImage]
-    @Environment(\.presentationMode) var presentationMode
-    
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.delegate = context.coordinator
-        picker.sourceType = .photoLibrary
-        return picker
-    }
-    
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-    
-    func makeCoordinator() -> Coordinator {
-        Coordinator(self)
-    }
-    
-    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        let parent: ImagePicker
-        
-        init(_ parent: ImagePicker) {
-            self.parent = parent
-        }
-        
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let image = info[.originalImage] as? UIImage {
-                parent.images.append(image)
-            }
-            parent.presentationMode.wrappedValue.dismiss()
-        }
     }
 }

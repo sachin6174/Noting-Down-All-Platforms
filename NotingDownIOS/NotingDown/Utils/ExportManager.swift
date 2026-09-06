@@ -21,7 +21,7 @@ class ExportManager: ObservableObject {
     }
     
     func exportNotes(_ notes: [NotesTable], format: ExportFormat) -> URL? {
-        let fileName = "NotingDown_Export_\(Date().formatted(date: .abbreviated, time: .omitted))"
+        let fileName = "NotingDown_Export_\(UUID().uuidString)"
         let content: String
         
         switch format {
@@ -78,7 +78,7 @@ class ExportManager: ObservableObject {
     }
     
     private func exportAsJSON(_ notes: [NotesTable]) -> String {
-        let notesData = notes.map { note in
+        let notesData: [[String: Any]] = notes.map { note in
             [
                 "id": note.id?.uuidString ?? "",
                 "title": note.title ?? "",
@@ -92,7 +92,7 @@ class ExportManager: ObservableObject {
         
         let exportData = [
             "exportDate": Date().ISO8601Format(),
-            "appVersion": "1.0",
+            "appVersion": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "",
             "totalNotes": notes.count,
             "notes": notesData
         ] as [String: Any]

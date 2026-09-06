@@ -1,0 +1,2 @@
+"NSMicrophoneUsageDescription" = "Graba tu voz para crear una nota.";
+"NSSpeechRecognitionUsageDescription" = "Transcribe tu voz en una nota mediante Apple Speech.";

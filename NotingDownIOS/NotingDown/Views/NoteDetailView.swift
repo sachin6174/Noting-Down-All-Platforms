@@ -1,18 +1,21 @@
 import SwiftUI
 
 struct NoteDetailView: View {
-    let note: NotesTable
+    @ObservedObject var note: NotesTable
     @Environment(\.presentationMode) var presentationMode
     @Environment(\.managedObjectContext) private var viewContext
     @State private var showEditor = false
     @State private var showShareSheet = false
+    @State private var confirmDelete = false
+    @State private var shareText = ""
+    @State private var saveError = false
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Theme.paddingL) {
                 // Header with category and favorite
                 HStack {
-                    Text(note.displayCategory)
+                    Text(LocalizedStringKey(note.displayCategory))
                         .font(Theme.captionFont)
                         .foregroundColor(Theme.categoryColors[note.displayCategory] ?? .gray)
                         .padding(.horizontal, Theme.paddingM)
@@ -111,7 +114,7 @@ struct NoteDetailView: View {
                     
                     Divider()
                     
-                    Button(role: .destructive, action: { deleteNote() }) {
+                    Button(role: .destructive, action: { confirmDelete = true }) {
                         Label("Delete Note", systemImage: "trash")
                     }
                 } label: {
@@ -119,8 +122,18 @@ struct NoteDetailView: View {
                         .font(.system(size: 20))
                         .foregroundColor(Theme.primaryGreen)
                 }
+                .accessibilityLabel("Note actions")
+                .accessibilityIdentifier("note.actions")
             }
         }
+        .alert("Delete Note", isPresented: $confirmDelete) {
+            Button("Delete", role: .destructive) { deleteNote() }
+            Button("Cancel", role: .cancel) { }
+        } message: { Text("Are you sure you want to delete this note? This action cannot be undone.") }
+        .sheet(isPresented: $showShareSheet) { ShareSheet(activityItems: [shareText]) }
+        .alert("Could not save note", isPresented: $saveError) {
+            Button("OK", role: .cancel) { }
+        } message: { Text("Please try again.") }
         .sheet(isPresented: $showEditor) {
             NoteEditorView(note: note)
                 .environment(\.managedObjectContext, viewContext)
@@ -136,7 +149,7 @@ struct NoteDetailView: View {
     }
     
     private func shareNote() {
-        let shareText = """
+        shareText = """
         \(note.title ?? "Untitled")
         
         \(note.noteDescription ?? "")
@@ -144,30 +157,25 @@ struct NoteDetailView: View {
         Created with NotingDown
         """
         
-        let activityVC = UIActivityViewController(
-            activityItems: [shareText],
-            applicationActivities: nil
-        )
-        
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootViewController = windowScene.windows.first?.rootViewController {
-            rootViewController.present(activityVC, animated: true)
-        }
+        showShareSheet = true
     }
     
     private func deleteNote() {
         withAnimation(.easeInOut(duration: 0.3)) {
             viewContext.delete(note)
-            saveContext()
-            presentationMode.wrappedValue.dismiss()
+            if saveContext() { presentationMode.wrappedValue.dismiss() }
         }
     }
     
-    private func saveContext() {
+    @discardableResult
+    private func saveContext() -> Bool {
         do {
             try viewContext.save()
+            return true
         } catch {
-            print("Error saving context: \(error.localizedDescription)")
+            viewContext.rollback()
+            saveError = true
+            return false
         }
     }
 }

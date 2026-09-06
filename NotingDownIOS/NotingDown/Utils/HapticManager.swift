@@ -24,6 +24,7 @@ class HapticManager {
 
 // Custom button style with haptic feedback
 struct HapticButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let hapticStyle: UIImpactFeedbackGenerator.FeedbackStyle
     
     init(hapticStyle: UIImpactFeedbackGenerator.FeedbackStyle = .light) {
@@ -32,9 +33,9 @@ struct HapticButtonStyle: ButtonStyle {
     
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.95 : 1.0)
             .opacity(configuration.isPressed ? 0.8 : 1.0)
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+            .animation(reduceMotion ? nil : .easeInOut(duration: 0.1), value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { isPressed in
                 if isPressed {
                     HapticManager.shared.impact(hapticStyle)
@@ -53,6 +54,7 @@ struct AnimationPresets {
 
 // Custom transition for note cards
 struct SlideInTransition: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let delay: Double
     @State private var isVisible = false
     
@@ -61,7 +63,7 @@ struct SlideInTransition: ViewModifier {
             .offset(y: isVisible ? 0 : 50)
             .opacity(isVisible ? 1 : 0)
             .onAppear {
-                withAnimation(AnimationPresets.bouncy.delay(delay)) {
+                withAnimation(reduceMotion ? nil : AnimationPresets.bouncy.delay(delay)) {
                     isVisible = true
                 }
             }

@@ -2,7 +2,11 @@ import SwiftUI
 
 struct Theme {
     // MARK: - Colors
-    static let primaryGreen = Color(red: 78/255, green: 187/255, blue: 120/255)
+    static let primaryGreen = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.35, green: 0.85, blue: 0.55, alpha: 1)
+            : UIColor(red: 0.12, green: 0.43, blue: 0.25, alpha: 1)
+    })
     static let lightGreen = Color(red: 78/255, green: 187/255, blue: 120/255).opacity(0.1)
     static let mediumGreen = Color(red: 78/255, green: 187/255, blue: 120/255).opacity(0.3)
     static let darkGreen = Color(red: 60/255, green: 150/255, blue: 95/255)
@@ -16,10 +20,10 @@ struct Theme {
     static let textTertiary = Color(.tertiaryLabel)
     
     // MARK: - Typography
-    static let titleFont = Font.system(size: 28, weight: .bold)
-    static let headlineFont = Font.system(size: 20, weight: .semibold)
-    static let bodyFont = Font.system(size: 16, weight: .regular)
-    static let captionFont = Font.system(size: 12, weight: .medium)
+    static let titleFont = Font.title.bold()
+    static let headlineFont = Font.headline
+    static let bodyFont = Font.body
+    static let captionFont = Font.caption
     
     // MARK: - Spacing
     static let paddingXS: CGFloat = 4
@@ -34,6 +38,11 @@ struct Theme {
     static let cornerRadiusL: CGFloat = 16
     static let cornerRadiusXL: CGFloat = 20
     
+    static let noteTagColors: [String: Color] = [
+        "red": .red, "orange": .orange, "yellow": .yellow, "green": .green,
+        "blue": .blue, "purple": .purple, "pink": .pink
+    ]
+
     // MARK: - Category Colors
     static let categoryColors: [String: Color] = [
         "Work": .blue,

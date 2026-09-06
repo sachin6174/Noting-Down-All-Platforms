@@ -7,6 +7,7 @@ struct NoteEditorView: View {
 
     // Local states to hold user input
     @State var title: String = ""
+    @State private var saveError = false
     @State var description: String = ""
     @State var selectedCategory: String = "General"
     @State var isFavorite: Bool = false
@@ -40,6 +41,8 @@ struct NoteEditorView: View {
                         }
                         
                         TextField("Enter note title...", text: $title)
+                            .accessibilityLabel("Title")
+                            .accessibilityIdentifier("editor.title")
                             .font(Theme.bodyFont)
                             .textFieldStyle(RoundedBorderTextFieldStyle())
                             .focused($titleFocused)
@@ -92,6 +95,8 @@ struct NoteEditorView: View {
                             }
                             
                             TextEditor(text: $description)
+                                .accessibilityLabel("Note content")
+                                .accessibilityIdentifier("editor.body")
                                 .font(Theme.bodyFont)
                                 .focused($descriptionFocused)
                                 .frame(minHeight: 200)
@@ -109,7 +114,7 @@ struct NoteEditorView: View {
                     // Word count
                     HStack {
                         Spacer()
-                        Text("\(description.split(separator: " ").count) words")
+                        Text("Words: \(description.split(whereSeparator: \.isWhitespace).count)")
                             .font(Theme.captionFont)
                             .foregroundColor(Theme.textSecondary)
                     }
@@ -119,7 +124,7 @@ struct NoteEditorView: View {
                 }
             }
             .background(Theme.lightGreen)
-            .navigationTitle(note == nil ? "New Note" : "Edit Note")
+            .navigationTitle(LocalizedStringKey(note == nil ? "New Note" : "Edit Note"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -133,11 +138,15 @@ struct NoteEditorView: View {
                     Button("Save") {
                         saveNote()
                     }
+                    .accessibilityIdentifier("editor.save")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(Theme.primaryGreen)
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
+            .alert("Could not save note", isPresented: $saveError) {
+                Button("OK", role: .cancel) { }
+            } message: { Text("Your draft is still open. Please try again.") }
             .onAppear {
                 loadNoteData()
                 // Focus title for new notes
@@ -160,33 +169,14 @@ struct NoteEditorView: View {
     }
     
     private func saveNote() {
-        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        if let note = note {
-            // Update existing note
-            note.title = trimmedTitle
-            note.noteDescription = trimmedDescription
-            note.category = selectedCategory
-            note.isFavorite = isFavorite
-            note.modifiedDate = Date()
-        } else {
-            // Create new note
-            let newNote = NotesTable(context: viewContext)
-            newNote.id = UUID()
-            newNote.title = trimmedTitle
-            newNote.noteDescription = trimmedDescription
-            newNote.category = selectedCategory
-            newNote.isFavorite = isFavorite
-            newNote.createdDate = Date()
-            newNote.modifiedDate = Date()
-        }
-
         do {
-            try viewContext.save()
+            try NoteStore(context: viewContext).save(
+                note: note, title: title, body: description,
+                category: selectedCategory, favorite: isFavorite,
+                colorTag: note?.colorTag)
             presentationMode.wrappedValue.dismiss()
         } catch {
-            print("Error saving note: \(error.localizedDescription)")
+            saveError = true
         }
     }
 }
@@ -199,14 +189,16 @@ struct CategoryChip: View {
     
     var body: some View {
         Button(action: action) {
-            Text(title)
+            Text(LocalizedStringKey(title))
                 .font(Theme.captionFont)
                 .foregroundColor(isSelected ? .white : color)
                 .padding(.horizontal, Theme.paddingM)
                 .padding(.vertical, Theme.paddingS)
                 .background(isSelected ? color : color.opacity(0.2))
                 .cornerRadius(20)
+                .frame(minHeight: 44)
         }
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

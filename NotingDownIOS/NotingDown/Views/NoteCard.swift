@@ -1,11 +1,10 @@
 import SwiftUI
 
 struct NoteCard: View {
-    let note: NotesTable
+    @ObservedObject var note: NotesTable
     let onFavoriteToggle: () -> Void
     let onDelete: () -> Void
     
-    @State private var isPressed = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.paddingS) {
@@ -15,9 +14,9 @@ struct NoteCard: View {
                     Text(note.title ?? "Untitled")
                         .font(Theme.headlineFont)
                         .foregroundColor(Theme.textPrimary)
-                        .lineLimit(1)
+                        .lineLimit(2)
                     
-                    Text(note.displayCategory)
+                    Text(LocalizedStringKey(note.displayCategory))
                         .font(Theme.captionFont)
                         .foregroundColor(Theme.categoryColors[note.displayCategory] ?? .gray)
                         .padding(.horizontal, 8)
@@ -37,6 +36,8 @@ struct NoteCard: View {
                         .font(.system(size: 18))
                 }
                 .buttonStyle(PlainButtonStyle())
+                .frame(minWidth: 44, minHeight: 44)
+                .accessibilityLabel(note.isFavorite ? "Remove from Favorites" : "Add to Favorites")
             }
             
             // Description preview
@@ -72,22 +73,12 @@ struct NoteCard: View {
                         .font(.system(size: 16))
                 }
                 .buttonStyle(PlainButtonStyle())
+                .frame(minWidth: 44, minHeight: 44)
+                .accessibilityLabel("Delete Note")
             }
         }
         .padding(Theme.paddingM)
         .cardStyle()
-        .scaleEffect(isPressed ? 0.98 : 1.0)
-        .animation(.easeInOut(duration: 0.1), value: isPressed)
-        .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.1)) {
-                isPressed = true
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                withAnimation(.easeInOut(duration: 0.1)) {
-                    isPressed = false
-                }
-            }
-        }
     }
 }
 

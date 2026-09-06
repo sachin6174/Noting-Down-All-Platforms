@@ -1,70 +1,74 @@
-<div align="center">
+# NotingDown for iOS
 
-# NotingDown
+A native SwiftUI note-taking app for iPhone and iPad, with local Core Data
+persistence, search, categories, favorites, speech-to-text notes, haptics and export.
 
-[<img src="NotingDown/Assets.xcassets/AppIcon.appiconset/icon 1.png" alt="App Store" width="100" style="border-radius: 20px;">](https://apps.apple.com/us/app/notingdown/id6742340327)
+[Open the Xcode project](NotingDown.xcodeproj) · [Quality and test guide](docs/QUALITY.md) · [MIT license](LICENSE)
 
-### A beautiful note-taking app for iPhone and iPad
+## Run
 
-[![Download on App Store](https://img.shields.io/badge/Download_on_the-App_Store-0D96F6?style=for-the-badge&logo=app-store&logoColor=white)](https://apps.apple.com/us/app/notingdown/id6742340327)
+Use Xcode 16.2 or newer on macOS. Open `NotingDown.xcodeproj`, select the shared
+`NotingDown` scheme and an iPhone or iPad simulator, then press Cmd+R.
+The deployment target is iOS/iPadOS 16.6. Select your own development team only
+when signing for a physical device; simulator builds need no signing credentials.
 
-</div>
+## What is implemented
 
----
+- Create, edit, favorite, search, categorize, delete and share notes stored on-device.
+- Core Data filtering and sorting, batched fetching, and debounced search.
+- Voice input using Apple Speech, saving the resulting transcript as note text.
+- Dynamic Type, labeled note controls, selected category traits and Reduce Motion support.
+- English and Spanish localization for the main note, search, editor, settings and voice flows.
+- XCTest unit, persistence, export, performance and UI test targets.
+- A macOS GitHub Actions workflow scoped to this iOS project, producing test results,
+  coverage, screenshots and a demo recording.
 
-## 📱 Overview
+Notes work offline. Speech recognition may need the network depending on device
+and language. There is **no CloudKit/iCloud synchronization**. Voice audio and image
+attachments are not persisted; formatting currently saves as plain text.
+Some analytics and template prose still uses English.
 
-NotingDown is optimized for iPhone and iPad running iOS 16 and above. Experience smooth performance, an intuitive interface, and seamless note management on your Apple devices—all completely offline.
+## Test and demo
 
-## ✨ Key Features
+On a Mac, run these from the repository root:
 
-- 🎨 **Elegant Design:** Enjoy a clean and modern interface crafted with SwiftUI
-- 💾 **Reliable Data Storage:** Powered by Core Data, your notes are securely saved
-- 🚀 **User-Friendly:** Quick creation, editing, and deletion with intuitive gestures
-- 📱 **Apple-Optimized:** Best experience on iPhone and iPad
-- 🔒 **Privacy-Focused:** Fully offline, no data collection
+```sh
+python3 NotingDownIOS/scripts/validate.py
+python3 NotingDownIOS/scripts/ci.py test
+python3 NotingDownIOS/scripts/ci.py demo
+```
 
-## 📸 Screenshots
+The UI walkthrough creates a note, searches its body, opens details and edits it.
+It produces real simulator screenshot attachments and a short `demo.mp4` under
+`NotingDownIOS/artifacts/`. The [iOS workflow](../.github/workflows/ios.yml) uploads
+these as `ios-evidence` after a successful run. UI tests use a separate SQLite
+store through Debug-only launch arguments, leaving normal app data separate.
 
-<div align="center">
-  <table>
-    <tr>
-      <td><img src="./NotingDown/ReleseImages/iphone/Simulator Screenshot - iPhone 16 Pro Max - 2025-02-22 at 22.30.06.png" width="380" style="border-radius: 10px;"></td>
-      <td><img src="./NotingDown/ReleseImages/iphone/Simulator Screenshot - iPhone 16 Pro Max - 2025-02-22 at 22.30.12.png" width="380" style="border-radius: 10px;"></td>
-    </tr>
-    <tr>
-      <td><img src="./NotingDown/ReleseImages/iphone/Simulator Screenshot - iPhone 16 Pro Max - 2025-02-22 at 22.30.18.png" width="380" style="border-radius: 10px;"></td>
-      <td><img src="./NotingDown/ReleseImages/iphone/Simulator Screenshot - iPhone 16 Pro Max - 2025-02-22 at 22.30.25.png" width="380" style="border-radius: 10px;"></td>
-    </tr>
-  </table>
-</div>
+The updated app has not yet been built or run on a simulator in this Windows
+workspace. Fresh screenshots, a video, coverage numbers and benchmark timings
+must come from the first successful macOS run; none are claimed here.
 
-## 🛠️ Technologies
+## Historical screenshots
 
-<div align="center">
+These checked-in captures are from February 2025 and show the earlier released
+interface, not the updated UI. Use the CI captures when preparing current
+portfolio material.
 
-[![SwiftUI](https://img.shields.io/badge/SwiftUI-FF4F00?style=for-the-badge&logo=swift&logoColor=white)](https://developer.apple.com/xcode/swiftui/)
-[![Core Data](https://img.shields.io/badge/Core_Data-147EFB?style=for-the-badge&logo=apple&logoColor=white)](https://developer.apple.com/documentation/coredata)
+<img src="NotingDown/ReleseImages/iphone/Simulator Screenshot - iPhone 16 Pro Max - 2025-02-22 at 22.30.06.png" alt="Historical iPhone notes screen, February 2025" width="260">
+<img src="NotingDown/ReleseImages/iphone/Simulator Screenshot - iPhone 16 Pro Max - 2025-02-22 at 22.30.12.png" alt="Historical iPhone note detail, February 2025" width="260">
 
-</div>
+## Performance evidence
 
-- **SwiftUI:** Modern UI toolkit for building immersive, fast, and accessible interfaces
-- **Core Data:** Robust and efficient model layer for managing app data persistently
+The 2,000-note SQLite benchmark records query wall-clock time and memory while
+checking result correctness. UI tests also measure launch time. See
+[the measurement protocol](docs/QUALITY.md#performance-work-and-measurement)
+for collecting a baseline and reporting results without inventing speedup claims.
 
-## 💡 About
+## Portfolio wording
 
-Developed with passion, NotingDown combines modern design with the convenience of digital note taking. Whether you're organizing your daily tasks or jotting down creative ideas, NotingDown is your perfect companion.
+> Built a native SwiftUI iOS note-taking app with local Core Data persistence,
+> search, speech-to-text notes, haptics and export; added XCTest coverage,
+> simulator CI, accessibility improvements and English/Spanish localization.
 
-<div align="center">
-  <img src="./NotingDown/ReleseImages/Screenshot 2025-02-25 at 12.57.03 AM.png" style="border-radius: 10px;">
-</div>
-
----
-
-<div align="center">
-
-### Download Now
-
-[![Download on App Store](https://img.shields.io/badge/Get_it_on_the-App_Store-000000?style=for-the-badge&logo=apple&logoColor=white)](https://apps.apple.com/us/app/notingdown/id6742340327)
-
-</div>
+Only add test-pass, coverage or performance numbers after obtaining the corresponding
+CI results. The [license](LICENSE) applies to the iOS directory only.

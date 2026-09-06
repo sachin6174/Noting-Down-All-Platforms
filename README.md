@@ -4,7 +4,7 @@
 
 ### *A modern, multi-platform, unified note-taking suite optimized for every device.*
 
-[![Platforms](https://img.shields.io/badge/Platforms-iOS%20%7C%20macOS%20%7C%20Android%20%7C%20Web%20%7C%20Windows%20%7C%20Linux-brightgreen?style=for-the-badge&logo=apple)](https://github.com/sachin6174/Noting-Down-All-Platforms)
+[![Platforms](https://img.shields.io/badge/Platforms-iOS%20%7C%20macOS%20%7C%20Android%20%7C%20Web-brightgreen?style=for-the-badge&logo=apple)](https://github.com/sachin6174/Noting-Down-All-Platforms)
 [![Language](https://img.shields.io/badge/Languages-Swift%20%7C%20Kotlin%20%7C%20JavaScript%20%7C%20HTML%2FCSS-blue?style=for-the-badge&logo=javascript)](https://github.com/sachin6174/Noting-Down-All-Platforms)
 [![Database](https://img.shields.io/badge/Storage-Core%20Data%20%7C%20MongoDB-green?style=for-the-badge&logo=mongodb)](https://github.com/sachin6174/Noting-Down-All-Platforms)
 
@@ -77,11 +77,9 @@ graph TD
 Noting-Down-All-Platforms/
 ├── ANotingDownServer/      # Node.js/Express API server, MongoDB connector
 ├── NotingDownAndroid/      # Kotlin Android client (Android Studio gradle project)
-├── NotingDowniOS/          # SwiftUI iOS application for iPhone & iPad
+├── NotingDownIOS/          # SwiftUI iOS application for iPhone & iPad
 ├── NotingDownMac/          # SwiftUI macOS desktop application
-├── NotingDownWeb/          # HTML/CSS/JavaScript vanilla web frontend client
-├── NotingDownWindows/      # Placeholder for future Windows client
-└── NotingDownLinux/        # Placeholder for future Linux client
+└── NotingDownWeb/          # HTML/CSS/JavaScript vanilla web frontend client
 ```
 
 ---
@@ -140,7 +138,7 @@ A Kotlin native application built with Retrofit, ViewModels, and Fragments.
 
 1. Open the **`NotingDownAndroid`** directory in **Android Studio**.
 2. Sync the project with Gradle files.
-3. Configure the backend API URL in [ApiClient.kt](file:///c:/Users/sachi/Desktop/github-all-windows/Noting-Down-All-Platforms/NotingDownAndroid/app/src/main/java/com/example/notingdown/network/ApiClient.kt) to point to your backend IP/localhost:
+3. Configure the backend API URL in [ApiClient.kt](NotingDownAndroid/app/src/main/java/com/example/notingdown/network/ApiClient.kt) to point to your backend IP/localhost:
    ```kotlin
    private const val BASE_URL = "http://10.0.2.2:3001/" // Emulator localhost loopback
    ```
@@ -148,13 +146,17 @@ A Kotlin native application built with Retrofit, ViewModels, and Fragments.
 
 ---
 
-### 4. 📱 Apple Clients (`NotingDowniOS` & `NotingDownMac`)
+### 4. 📱 Apple Clients (`NotingDownIOS` & `NotingDownMac`)
 Offline-first Swift applications with Core Data and rich SwiftUI views.
+
+For iOS setup, tests, CI, license, screenshots and demo capture, see the
+[iOS README](NotingDownIOS/ReadMe.md). The iOS app stores notes locally and does
+not implement CloudKit/iCloud synchronization.
 
 1. Open Xcode on a macOS device.
 2. Open either:
-   *   [NotingDowniOS.xcodeproj](file:///c:/Users/sachi/Desktop/github-all-windows/Noting-Down-All-Platforms/NotingDowniOS/NotingDown.xcodeproj)
-   *   [NotingDownMac.xcodeproj](file:///c:/Users/sachi/Desktop/github-all-windows/Noting-Down-All-Platforms/NotingDownMac/Noting Down.xcodeproj)
+   *   [NotingDown iOS project](NotingDownIOS/NotingDown.xcodeproj)
+   *   [NotingDown macOS project](NotingDownMac/Noting%20Down.xcodeproj)
 3. Select your target device/simulator (iPhone, iPad, or Mac).
 4. Press `Cmd + R` to build and run the application.
 

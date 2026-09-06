@@ -12,27 +12,29 @@ struct VoiceNoteView: View {
     @State private var selectedCategory = "Personal"
     @State private var showingPermissionAlert = false
     @State private var isProcessing = false
+    @State private var saveError = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     private let categories = ["General", "Work", "Personal", "Ideas", "Shopping", "Travel", "Health", "Finance", "Education"]
     
     var body: some View {
         NavigationView {
-            VStack(spacing: Theme.paddingL) {
+            ScrollView { VStack(spacing: Theme.paddingL) {
                 // Recording Status
                 VStack(spacing: Theme.paddingM) {
                     ZStack {
                         Circle()
                             .fill(voiceRecorder.isRecording ? .red.opacity(0.2) : Theme.lightGreen)
                             .frame(width: 120, height: 120)
-                            .scaleEffect(voiceRecorder.isRecording ? 1.1 : 1.0)
-                            .animation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true), value: voiceRecorder.isRecording)
+                            .scaleEffect(voiceRecorder.isRecording && !reduceMotion ? 1.1 : 1.0)
+                            .animation(reduceMotion ? nil : .easeInOut(duration: 0.5).repeatForever(autoreverses: true), value: voiceRecorder.isRecording)
                         
                         Image(systemName: voiceRecorder.isRecording ? "mic.fill" : "mic")
                             .font(.system(size: 40))
                             .foregroundColor(voiceRecorder.isRecording ? .red : Theme.primaryGreen)
                     }
                     
-                    Text(voiceRecorder.isRecording ? "Recording..." : "Tap to Record")
+                    Text(LocalizedStringKey(voiceRecorder.isRecording ? "Recording..." : "Tap to Record"))
                         .font(Theme.headlineFont)
                         .foregroundColor(Theme.textPrimary)
                     
@@ -42,9 +44,11 @@ struct VoiceNoteView: View {
                             .foregroundColor(.red)
                     }
                 }
-                .onTapGesture {
-                    handleRecordingTap()
-                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(voiceRecorder.isRecording ? "Stop recording" : "Start recording")
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction { handleRecordingTap() }
+                .onTapGesture { handleRecordingTap() }
                 
                 // Control Buttons
                 HStack(spacing: Theme.paddingL) {
@@ -58,6 +62,7 @@ struct VoiceNoteView: View {
                             .background(.red)
                             .cornerRadius(25)
                     }
+                    .accessibilityLabel("Stop recording")
                     .disabled(!voiceRecorder.isRecording)
                     .opacity(voiceRecorder.isRecording ? 1.0 : 0.5)
                     
@@ -75,6 +80,7 @@ struct VoiceNoteView: View {
                             .background(Theme.primaryGreen)
                             .cornerRadius(25)
                     }
+                    .accessibilityLabel(voiceRecorder.isRecording ? "Pause recording" : "Resume recording")
                     .disabled(!voiceRecorder.hasRecording)
                     .opacity(voiceRecorder.hasRecording ? 1.0 : 0.5)
                 }
@@ -129,7 +135,7 @@ struct VoiceNoteView: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: Theme.paddingS) {
                                 ForEach(categories, id: \.self) { category in
-                                    Button(category) {
+                                    Button(LocalizedStringKey(category)) {
                                         selectedCategory = category
                                     }
                                     .font(Theme.captionFont)
@@ -153,8 +159,9 @@ struct VoiceNoteView: View {
                     saveVoiceNote()
                 }
                 .primaryButtonStyle()
-                .disabled(noteTitle.isEmpty || (!voiceRecorder.hasRecording && transcribedText.isEmpty))
+                .disabled(noteTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || transcribedText.isEmpty || voiceRecorder.isRecording)
                 .padding(.horizontal, Theme.paddingM)
+            }
             }
             .padding(.vertical, Theme.paddingL)
             .background(Theme.lightGreen)
@@ -170,6 +177,10 @@ struct VoiceNoteView: View {
                 }
             }
         }
+        .onDisappear { voiceRecorder.stopRecording() }
+        .alert("Could not save note", isPresented: $saveError) {
+            Button("OK", role: .cancel) { }
+        } message: { Text("Your draft is still open. Please try again.") }
         .onReceive(voiceRecorder.$transcription) { newTranscription in
             if !newTranscription.isEmpty {
                 transcribedText = newTranscription
@@ -185,7 +196,7 @@ struct VoiceNoteView: View {
             }
             Button("Cancel", role: .cancel) { }
         } message: {
-            Text("Please enable microphone access in Settings to record voice notes.")
+            Text("Please enable microphone and speech recognition access in Settings to transcribe voice notes.")
         }
     }
     
@@ -208,28 +219,12 @@ struct VoiceNoteView: View {
     }
     
     private func saveVoiceNote() {
-        let newNote = NotesTable(context: viewContext)
-        newNote.id = UUID()
-        newNote.title = noteTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        newNote.noteDescription = """
-        🎤 Voice Note
-        
-        Transcription:
-        \(transcribedText)
-        
-        Recorded on: \(Date().formatted(date: .abbreviated, time: .shortened))
-        """
-        newNote.category = selectedCategory
-        newNote.createdDate = Date()
-        newNote.modifiedDate = Date()
-        newNote.isFavorite = false
-        
         do {
-            try viewContext.save()
+            voiceRecorder.stopRecording()
+            try NoteStore(context: viewContext).save(
+                title: noteTitle, body: transcribedText, category: selectedCategory)
             presentationMode.wrappedValue.dismiss()
-        } catch {
-            print("Error saving voice note: \(error.localizedDescription)")
-        }
+        } catch { saveError = true }
     }
     
     private func openAppSettings() {
@@ -239,141 +234,117 @@ struct VoiceNoteView: View {
     }
 }
 
-class VoiceRecorder: ObservableObject {
+@MainActor
+final class VoiceRecorder: ObservableObject {
     @Published var isRecording = false
     @Published var hasRecording = false
     @Published var recordingTime: TimeInterval = 0
     @Published var transcription = ""
     @Published var isProcessing = false
-    
-    private var audioRecorder: AVAudioRecorder?
-    private var audioPlayer: AVAudioPlayer?
+
     private var recordingTimer: Timer?
-    private let speechRecognizer = SFSpeechRecognizer()
+    private let speechRecognizer = SFSpeechRecognizer(locale: .current)
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private let audioEngine = AVAudioEngine()
-    
+    private var tapInstalled = false
+    private var sessionID = UUID()
+
     func startRecording(completion: @escaping (Bool) -> Void) {
-        requestPermissions { [weak self] granted in
-            DispatchQueue.main.async {
-                if granted {
-                    self?.beginRecording()
-                }
-                completion(granted)
-            }
-        }
-    }
-    
-    private func requestPermissions(completion: @escaping (Bool) -> Void) {
         AVAudioSession.sharedInstance().requestRecordPermission { audioGranted in
-            SFSpeechRecognizer.requestAuthorization { speechStatus in
-                DispatchQueue.main.async {
-                    completion(audioGranted && speechStatus == .authorized)
+            SFSpeechRecognizer.requestAuthorization { status in
+                Task { @MainActor [weak self] in
+                    guard let self, audioGranted, status == .authorized else {
+                        completion(false)
+                        return
+                    }
+                    completion(self.beginRecording())
                 }
             }
         }
     }
-    
-    private func beginRecording() {
+
+    private func beginRecording() -> Bool {
+        stopRecording()
+        guard let speechRecognizer, speechRecognizer.isAvailable else { return false }
         do {
-            let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.playAndRecord, mode: .default)
-            try audioSession.setActive(true)
-            
-            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let audioURL = documentsPath.appendingPathComponent("voiceNote.m4a")
-            
-            let settings = [
-                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-                AVSampleRateKey: 44100,
-                AVNumberOfChannelsKey: 1,
-                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
-            ]
-            
-            audioRecorder = try AVAudioRecorder(url: audioURL, settings: settings)
-            audioRecorder?.record()
-            
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.record, mode: .measurement)
+            try session.setActive(true)
+            let request = SFSpeechAudioBufferRecognitionRequest()
+            request.shouldReportPartialResults = true
+            // Prefer local recognition when the device and language support it.
+            request.requiresOnDeviceRecognition = speechRecognizer.supportsOnDeviceRecognition
+            recognitionRequest = request
+            let input = audioEngine.inputNode
+            input.installTap(onBus: 0, bufferSize: 1024, format: input.outputFormat(forBus: 0)) { buffer, _ in
+                request.append(buffer)
+            }
+            tapInstalled = true
+            let activeSession = sessionID
+            recognitionTask = speechRecognizer.recognitionTask(with: request) { [weak self] result, error in
+                Task { @MainActor in
+                    guard let self, self.sessionID == activeSession else { return }
+                    if let result { self.transcription = result.bestTranscription.formattedString }
+                    if error != nil || result?.isFinal == true { self.stopRecording() }
+                }
+            }
+            audioEngine.prepare()
+            try audioEngine.start()
+            transcription = ""
+            recordingTime = 0
             isRecording = true
             hasRecording = true
             startTimer()
-            startSpeechRecognition()
-            
+            return true
         } catch {
-            print("Failed to start recording: \(error.localizedDescription)")
+            stopRecording()
+            return false
         }
     }
-    
+
     func stopRecording() {
-        audioRecorder?.stop()
+        sessionID = UUID()
+        audioEngine.stop()
+        if tapInstalled {
+            audioEngine.inputNode.removeTap(onBus: 0)
+            tapInstalled = false
+        }
+        recognitionRequest?.endAudio()
+        recognitionTask?.cancel()
+        recognitionTask = nil
+        recognitionRequest = nil
         isRecording = false
+        hasRecording = false
         stopTimer()
-        stopSpeechRecognition()
-        processRecording()
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
-    
+
     func pauseRecording() {
-        audioRecorder?.pause()
+        guard hasRecording else { return }
+        audioEngine.pause()
         isRecording = false
         stopTimer()
     }
-    
+
     func resumeRecording() {
-        audioRecorder?.record()
-        isRecording = true
-        startTimer()
+        guard hasRecording else { return }
+        do {
+            try audioEngine.start()
+            isRecording = true
+            startTimer()
+        } catch { stopRecording() }
     }
-    
+
     private func startTimer() {
-        recordingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-            self?.recordingTime += 1
+        stopTimer()
+        recordingTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.recordingTime += 1 }
         }
     }
-    
+
     private func stopTimer() {
         recordingTimer?.invalidate()
         recordingTimer = nil
-    }
-    
-    private func startSpeechRecognition() {
-        guard let speechRecognizer = speechRecognizer, speechRecognizer.isAvailable else { return }
-        
-        recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-        guard let recognitionRequest = recognitionRequest else { return }
-        
-        recognitionRequest.shouldReportPartialResults = true
-        
-        let inputNode = audioEngine.inputNode
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
-        
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
-            recognitionRequest.append(buffer)
-        }
-        
-        audioEngine.prepare()
-        try? audioEngine.start()
-        
-        recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
-            if let result = result {
-                DispatchQueue.main.async {
-                    self?.transcription = result.bestTranscription.formattedString
-                }
-            }
-        }
-    }
-    
-    private func stopSpeechRecognition() {
-        audioEngine.stop()
-        audioEngine.inputNode.removeTap(onBus: 0)
-        recognitionRequest?.endAudio()
-        recognitionTask?.cancel()
-    }
-    
-    private func processRecording() {
-        isProcessing = true
-        // Additional processing can be added here
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            self.isProcessing = false
-        }
     }
 }
