@@ -6,11 +6,16 @@
 //
 
 import SwiftUI
+import FirebaseCore
 
 @main
 struct NoteItApp: App {
     let persistenceController = AppPersistence.makeStack()
     @AppStorage("isDarkMode") private var isDarkMode = false
+
+    init() {
+        FirebaseApp.configure()
+    }
 
     var body: some Scene {
         WindowGroup {

@@ -40,6 +40,11 @@ CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_
 TEST_TARGET_NAME = NotingDown;
 }; name = Release; };
 
+/* Begin PBXBuildFile section */
+		FB0000000000000000000004 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000000000000000000002 /* FirebaseAnalytics */; };
+		FB0000000000000000000005 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000000000000000000003 /* FirebaseCrashlytics */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		695BC7B32D65D593008F60A5 /* NotingDown.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NotingDown.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -57,6 +62,8 @@ TEST_TARGET_NAME = NotingDown;
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FB0000000000000000000004 /* FirebaseAnalytics in Frameworks */,
+				FB0000000000000000000005 /* FirebaseCrashlytics in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -92,6 +99,7 @@ TEST_TARGET_NAME = NotingDown;
 				695BC7AF2D65D593008F60A5 /* Sources */,
 				695BC7B02D65D593008F60A5 /* Frameworks */,
 				695BC7B12D65D593008F60A5 /* Resources */,
+				FB0000000000000000000006 /* Upload Crashlytics dSYMs */,
 			);
 			buildRules = (
 			);
@@ -102,6 +110,8 @@ TEST_TARGET_NAME = NotingDown;
 			);
 			name = NotingDown;
 			packageProductDependencies = (
+				FB0000000000000000000002 /* FirebaseAnalytics */,
+				FB0000000000000000000003 /* FirebaseCrashlytics */,
 			);
 			productName = NoteIt;
 			productReference = 695BC7B32D65D593008F60A5 /* NotingDown.app */;
@@ -132,6 +142,9 @@ TEST_TARGET_NAME = NotingDown;
 			);
 			mainGroup = 695BC7AA2D65D593008F60A5;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				FB0000000000000000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 695BC7B42D65D593008F60A5 /* Products */;
 			projectDirPath = "";
@@ -152,6 +165,26 @@ TEST_TARGET_NAME = NotingDown;
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		FB0000000000000000000006 /* Upload Crashlytics dSYMs */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${TARGET_NAME}",
+				"$(SRCROOT)/$(BUILT_PRODUCTS_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Upload Crashlytics dSYMs";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		695BC7AF2D65D593008F60A5 /* Sources */ = {
@@ -291,6 +324,8 @@ TEST_TARGET_NAME = NotingDown;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 0;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				DEVELOPMENT_ASSET_PATHS = "\"NotingDown/Preview Content\"";
 				DEVELOPMENT_TEAM = QA7BM7NDFK;
 				ENABLE_PREVIEWS = YES;
@@ -310,7 +345,7 @@ TEST_TARGET_NAME = NotingDown;
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.1;
-				PRODUCT_BUNDLE_IDENTIFIER = in.sachinserver.notingdown;
+				PRODUCT_BUNDLE_IDENTIFIER = in.sachinserver.notingdown.next;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -327,6 +362,8 @@ TEST_TARGET_NAME = NotingDown;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 0;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				DEVELOPMENT_ASSET_PATHS = "\"NotingDown/Preview Content\"";
 				DEVELOPMENT_TEAM = QA7BM7NDFK;
 				ENABLE_PREVIEWS = YES;
@@ -346,7 +383,7 @@ TEST_TARGET_NAME = NotingDown;
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.1;
-				PRODUCT_BUNDLE_IDENTIFIER = in.sachinserver.notingdown;
+				PRODUCT_BUNDLE_IDENTIFIER = in.sachinserver.notingdown.next;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -377,6 +414,30 @@ TEST_TARGET_NAME = NotingDown;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		FB0000000000000000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.19.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		FB0000000000000000000002 /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB0000000000000000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
+		};
+		FB0000000000000000000003 /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB0000000000000000000001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 695BC7AB2D65D593008F60A5 /* Project object */;
 }
